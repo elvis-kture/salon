@@ -7,9 +7,10 @@ define('BALANCE_NODE_TYPE', 'balance_check');
 define('CLOSE_DAY_NODE_TYPE', 'close_day');
 define('GREEN_STATUS_EVENT_TID', 11);
 define('NORMAL_STATUS_EVENT_TID', 12);
+define('PAY_FORMAT_KASSA_TID', 33);
 define('PAY_FORMAT_WITHOUT_CASH_TID', 30);
-define('PAY_TYPE_CREDIT_TID', 32);
 define('PAY_TYPE_DEBIT_TID', 31);
+define('PAY_TYPE_CREDIT_TID', 32);
 define('ON_APPROVE_STATUS_EVENT_TID', 35);
 define('PAY_TYPE_PEREKIDKA_TID_LOCAL', 85);
 define('PAY_TYPE_PEREKIDKA_TID_DEV', 111);
@@ -211,8 +212,20 @@ function check_form_validate($form, &$form_state){
         ($form_state['values']['field_pay_type'][LANGUAGE_NONE][0]['tid'] == PAY_TYPE_PEREKIDKA_TID_LOCAL
         || $form_state['values']['field_pay_type'][LANGUAGE_NONE][0]['tid'] == PAY_TYPE_PEREKIDKA_TID_DEV) && !form_get_errors()
     ) {
-        $form_state['values']['field_pay_type'][LANGUAGE_NONE][0]['tid'] = PAY_TYPE_CREDIT_TID;
-        create_programmatically_bill($form_state['values']['field_perekidka_balance'][LANGUAGE_NONE][0]['tid'], $form_state['values']);
+        if ($form_state['values']['field_pay_format'][LANGUAGE_NONE][0]['tid'] == PAY_FORMAT_WITHOUT_CASH_TID) {
+            $form_state['values']['field_pay_type'][LANGUAGE_NONE][0]['tid'] = PAY_TYPE_CREDIT_TID;
+            create_programmatically_bill($form_state['values']['field_perekidka_balance'][LANGUAGE_NONE][0]['tid'], $form_state['values'], $form_state['values']['field_salon'][LANGUAGE_NONE][0]['tid'], $form_state['values']['field_perekidka_balance'][LANGUAGE_NONE][0]['tid']);
+        }
+        else if($form_state['values']['field_pay_format'][LANGUAGE_NONE][0]['tid'] == PAY_FORMAT_KASSA_TID) {
+
+            // ORDER OF THE NEXT FIELDS IS IMPORTANT BECAUSE OF $source_bill_node['body']['und'][0]['value'] in  create_programmatically_bill()
+            create_programmatically_bill($form_state['values']['field_salon'][LANGUAGE_NONE][0]['tid'], $form_state['values'], $form_state['values']['field_perekidka_balance'][LANGUAGE_NONE][0]['tid'], $form_state['values']['field_salon'][LANGUAGE_NONE][0]['tid']);
+
+            $form_state['values']['field_pay_type'][LANGUAGE_NONE][0]['tid'] = PAY_TYPE_CREDIT_TID;
+            create_programmatically_bill($form_state['values']['field_perekidka_balance'][LANGUAGE_NONE][0]['tid'], $form_state['values'], $form_state['values']['field_salon'][LANGUAGE_NONE][0]['tid'], $form_state['values']['field_perekidka_balance'][LANGUAGE_NONE][0]['tid'],PAY_TYPE_CREDIT_TID);
+
+        }
+
 	}
 
 }
@@ -288,10 +301,12 @@ function salon_node_insert($node){
 	}
 }
 
-function create_programmatically_bill($perekidka_salon_tid, &$source_bill_node) {
+function create_programmatically_bill($perekidka_salon_tid, &$source_bill_node, $perekidka_to_tid, $perekidka_from_tid, $pay_type = PAY_TYPE_DEBIT_TID) {
 	global $user;
 	$perekidka_salon = taxonomy_term_load($perekidka_salon_tid);
     $source_salon = taxonomy_term_load($source_bill_node['field_salon'][LANGUAGE_NONE][0]['tid']);
+    $salon_perekidka_to = taxonomy_term_load($perekidka_to_tid);
+    $perekidka_from = taxonomy_term_load($perekidka_from_tid);
 
 	$node = new stdClass();
 	$node->type = 'event_calendar';
@@ -299,7 +314,7 @@ function create_programmatically_bill($perekidka_salon_tid, &$source_bill_node) 
 	$node->status = 1;
 	$node->uid = $user->uid;
 	$node->name = $user->name;
-	$node->title = t('Перекидка за !salon', array('!salon' => $perekidka_salon->name));
+	$node->title = t('Перекидка !salon', array('!salon' => $perekidka_salon->name));
 	$node->promote = 1;
 	$node->created = time();
 	$node->changed = time();
@@ -308,17 +323,17 @@ function create_programmatically_bill($perekidka_salon_tid, &$source_bill_node) 
 	$node->format = 3;
 	$node->language = 'en';
 	$node->body['und'][0]['format'] = 3;
-	$node->body['und'][0]['value'] = t('Перекидка из !salon', array('!salon' => $source_salon->name));
+	$node->body['und'][0]['value'] = t('Перекидка VVV !salon', array('!salon' => $salon_perekidka_to->name));
 
-    $source_bill_node['body']['und'][0]['value'] = t('Перекидка в !salon', array('!salon' => $perekidka_salon->name));
+    $source_bill_node['body']['und'][0]['value'] = t('Перекидка FFF !salon', array('!salon' => $perekidka_from->name));
 
 	$node->revision = TRUE;
 	$node->comment = 1;
 	$node->is_new = TRUE;
 
 	//Bill fields
-	$node->field_salon = array(LANGUAGE_NONE => array(array('tid' => $perekidka_salon_tid)));
-	$node->field_pay_type = array(LANGUAGE_NONE => array(array('tid' => PAY_TYPE_DEBIT_TID)));
+	$node->field_salon = array(LANGUAGE_NONE => array(array('tid' => $perekidka_from_tid)));
+	$node->field_pay_type = array(LANGUAGE_NONE => array(array('tid' => $pay_type)));
 	$node->field_pay_format = $source_bill_node['field_pay_format'];
 	$node->field_date = $source_bill_node['field_date'];
 	$node->field_articul = $source_bill_node['field_articul'];

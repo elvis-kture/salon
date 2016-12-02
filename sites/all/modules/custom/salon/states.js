@@ -4,6 +4,7 @@
 
         $('input[name=field_pay_format\\[und\\]]').change(function (){
             check_pay_type($(this))
+            check_pay_format($('input[name=field_pay_type\\[und\\]]:checked'))
         })
 
         check_pay_format($('input[name=field_pay_type\\[und\\]]:checked'))
@@ -12,10 +13,12 @@
             check_pay_format($(this))
         })
     })
+
     function check_pay_type($node) {
-            $perekidka_local = $('label[for="edit-field-pay-type-und-85"]')
-            $perekidka_dev = $('label[for="edit-field-pay-type-und-111"]')
-        if ($node.val() != '30') {
+        $perekidka_local = $('label[for="edit-field-pay-type-und-85"]')
+        $perekidka_dev = $('label[for="edit-field-pay-type-und-111"]')
+
+        if ($node.val() != '30' && $node.val() != '33') {
             $perekidka_local.hide().parent().hide()
             $perekidka_local.children('input').removeAttr('checked')
 
