@@ -204,3 +204,9 @@ a.sub-title-balance{
 .page-node-revisions-view td.diff-links{
     display: none;
 }
+#edit-field-clearing-address{
+    display: none;
+}
+form.node-form .radio, form.node-form .checkbox {
+    position: inherit;
+}

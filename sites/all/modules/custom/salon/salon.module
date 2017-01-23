@@ -33,33 +33,6 @@ function salon_init(){
 }
 
 /**
- * AJAX callback for loading node list
- */
-function form_ajax_form_load_nodes($form, $form_state) {
-	// Возвращаем элемент формы, который должен быть перезагружен.
-	// В данном случае надо перезагрузить выпадающий список с материалами.
-	return $form['node'];
-}
-
-
-//function metabetting_main_update_signup_link_callback(&$form, $form_state) {
-//	if ($form_state['values']['field_pay_type'][LANGUAGE_NONE][0]['tid'] == 85) {
-//		$form['list'] = array(
-//			'#title' => t('Crust Size'),
-//			'#type' => 'select',
-//			'#description' => 'Select the desired pizza crust size.',
-//			'#options' => array(t('--- SELECT ---'), t('10"'), t('12"'), t('16"')),
-//		);
-//	}
-//	return array(
-//		'#type' => 'ajax',
-//		'#commands' => array(
-//			ajax_command_replace("#field_pay_type_list_wrapper", render($form['list'])),
-//		)
-//	);
-//}
-
-/**
  * Implements hook_form_alter().
  */
 function salon_form_alter(&$form, &$form_state, $form_id) {
@@ -70,19 +43,6 @@ function salon_form_alter(&$form, &$form_state, $form_id) {
 		$form['#validate'][] = 'check_form_validate';
 
 		$form['#attributes']['autocomplete'] = 'off';
-
-//		$form['field_pay_type']['und']['#ajax'] = array(
-//			'callback' => 'metabetting_main_update_signup_link_callback',
-//			'wrapper' => array('field_pay_type_wrapper'),
-//			'event' => 'change',
-//			'method' => 'replace',
-//		);
-//
-//		$form['markup'] = array(
-//			'#prefix' => '<div id = "field_pay_type_list_wrapper">',
-//			'#suffix' => '</div>',
-//			'#markup' => '',
-//		);
 
 		if ($form['field_perekidka_balance'] && arg(2) == 'edit' ) {
 			$term_name = explode(' ', $form['#node']->body[LANGUAGE_NONE][0]['value'])[2];
@@ -100,12 +60,32 @@ function salon_form_alter(&$form, &$form_state, $form_id) {
                     ->fieldCondition('field_salon', 'tid', $option_tid_salon);
 
                 $result = $query->execute();
+
                 if (!$result) {
                     unset($form['field_perekidka_balance'][LANGUAGE_NONE]['#options'][$option_tid_salon]);
                 }
 
             }
+
         }
+
+        // Shared WITHOUT CASH ADDRES -- Start --
+        $query = new EntityFieldQuery();
+        $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'balance_check')
+            ->fieldCondition('field_for_all', 'value', 1);
+
+        $results = $query->execute();
+        $nids = array();
+
+        $nids['_none'] = '_none';
+        if ($results && $results['node']) {
+            foreach ($results['node'] as $nid => $data) {
+                $nids[$nid] = $nid;
+            }
+        }
+        $form['field_clearing_address'][LANGUAGE_NONE]['#options'] = array_intersect_key($form['field_clearing_address'][LANGUAGE_NONE]['#options'], $nids);
+        // Shared WITHOUT CASH ADDRES -- End --
 
 
 		if (!$form['title']['#default_value']) {
@@ -275,11 +255,17 @@ function salon_node_insert($node){
 		&& $node->field_pay_format[LANGUAGE_NONE]['0']['tid'] == PAY_FORMAT_WITHOUT_CASH_TID
 	) {
 		$salon_tid = $node->field_salon[LANGUAGE_NONE][0]['tid'];
-		$isset_node_balance_nid = get_node_by_field('balance_check', $salon_tid);
 
-		if ($isset_node_balance_nid) {
+        if ($node->field_shared[LANGUAGE_NONE][0]['value'] && $node->field_clearing_address && $node->field_clearing_address[LANGUAGE_NONE][0]['target_id']) {
+            $isset_node_balance_nid = (int)$node->field_clearing_address[LANGUAGE_NONE][0]['target_id'];
+        }
+        else {
+            $isset_node_balance_nid = get_node_by_field('balance_check', $salon_tid);
+        }
+
+        if ($isset_node_balance_nid) {
 			$balance_check = is_integer($isset_node_balance_nid) ? node_load($isset_node_balance_nid) : node_load($isset_node_balance_nid->nid);
-			$balance_amount = (float)$balance_check->field_costs[LANGUAGE_NONE]['0']['value'];
+            $balance_amount = (float)$balance_check->field_costs[LANGUAGE_NONE]['0']['value'];
 			$check_anount = (float)$node->field_costs[LANGUAGE_NONE]['0']['value'];
 
 			if ($node->field_pay_type[LANGUAGE_NONE]['0']['tid'] == PAY_TYPE_CREDIT_TID) {
@@ -293,8 +279,7 @@ function salon_node_insert($node){
 					$balance_check->field_costs[LANGUAGE_NONE]['0']['value'] = $balance_amount + $check_anount;
 				}
 			}
-
-			$balance_check->revision = 1;
+            $balance_check->revision = 1;
 			node_save($balance_check);
 		}
 
@@ -442,14 +427,6 @@ function salon_node_presave($node){
 
 function update_bill_node_status($nid, $fields){
 
-//	db_update('field_data_event_calendar_status')
-//		->fields($fields)
-//		->condition('entity_id', $nid)
-//		->execute();
-//	db_update('field_revision_event_calendar_status')
-//		->fields($fields)
-//		->condition('entity_id', $nid)
-//		->execute();
 }
 
 /**
@@ -457,13 +434,6 @@ function update_bill_node_status($nid, $fields){
  */
 function salon_menu() {
 	$items = array();
-
-	$items['ajax/update_submission_status'] = array(
-		'page callback' => 'nowlegal_common_ajax_update_submission_status',
-		'access callback' => 'user_access',
-		'access arguments' => array('administer site configuration'),
-		'type' => MENU_CALLBACK,
-	);
 
 	return $items;
 }
