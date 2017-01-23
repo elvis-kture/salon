@@ -27,22 +27,22 @@
 
     function check_pay_type($node) {
         $perekidka_local = $('label[for="edit-field-pay-type-und-85"]')
-//        $perekidka_dev = $('label[for="edit-field-pay-type-und-111"]')
+        $perekidka_dev = $('label[for="edit-field-pay-type-und-111"]')
         $rashod = $('label[for="edit-field-pay-type-und-32"]')
 
         if ($node.val() != '30' && $node.val() != '33') {
             $perekidka_local.hide().parent().hide()
             $perekidka_local.children('input').removeAttr('checked')
 
-//            $perekidka_dev.hide().parent().hide()
-//            $perekidka_dev.children('input').removeAttr('checked')
+            $perekidka_dev.hide().parent().hide()
+            $perekidka_dev.children('input').removeAttr('checked')
 
             $rashod.hide().parent().hide()
             $rashod.children('input').removeAttr('checked')
         }
         else {
             $perekidka_local.show().parent().show()
-//            $perekidka_dev.show().parent().show()
+            $perekidka_dev.show().parent().show()
             $rashod.show().parent().show()
         }
     }
