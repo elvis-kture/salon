@@ -49,7 +49,6 @@
 
             $perekidka_address.hide()
             $('#edit-field-perekidka-balance-und').val('_none')
-            $('.autocomplete-deluxe-container').show()
 
             if ($node.val() == '32' &&  $('input[name=field_pay_format\\[und\\]]:checked').val() == '30') {
                 $('#edit-field-shared').show()
@@ -69,7 +68,6 @@
                 $('#edit-field-clearing-address').hide()
             }
 
-            $('.autocomplete-deluxe-container').hide()
             $perekidka_address.show()
         }
     }

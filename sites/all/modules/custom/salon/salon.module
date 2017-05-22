@@ -33,6 +33,13 @@ function salon_init(){
 }
 
 /**
+ * Implements ajax callback.
+ */
+function nowlegal_lawyer_firm_registration_form_callback($form, &$form_state) {
+    return $form['basic_info']['lawyers'];
+}
+
+/**
  * Implements hook_form_alter().
  */
 function salon_form_alter(&$form, &$form_state, $form_id) {
@@ -52,6 +59,20 @@ function salon_form_alter(&$form, &$form_state, $form_id) {
 			$form['body'][LANGUAGE_NONE][0]['value']['#attributes']['readonly'] = 'readonly';
 			$form['field_perekidka_balance'][LANGUAGE_NONE]['#attributes']['disabled'] = TRUE;
 		} else {
+
+            $form['field_pay_format']['#ajax'] = array(
+                'callback' => 'nowlegal_lawyer_firm_registration_form_callback',
+                'wrapper' => 'lawyers-list',
+                'event' => 'change'
+            );
+
+            if ($form['field_pay_format']) {
+
+            }
+
+            $form['field_perekidka_balance']['#prefix'] = '<div id="lawyers-list">';
+            $form['field_perekidka_balance']['#suffix'] = '</div>';
+
             foreach ($form['field_perekidka_balance'][LANGUAGE_NONE]['#options'] as $option_tid_salon => $name) {
 
                 $query = new EntityFieldQuery();
